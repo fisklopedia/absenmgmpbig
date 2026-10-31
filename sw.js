@@ -7,7 +7,7 @@
  *   - navigasi: network-first fallback ke cache
  * ============================================================ */
 
-const CACHE_VERSION = "v1.0.0";
+const CACHE_VERSION = "v1.0.1";  // ← naikkan ke v1.0.1 untuk fix chrome-extension error
 const STATIC_CACHE  = `mgmp-static-${CACHE_VERSION}`;
 const RUNTIME_CACHE = `mgmp-runtime-${CACHE_VERSION}`;
 
@@ -56,6 +56,18 @@ self.addEventListener("fetch", (event) => {
 
   // Abaikan non-GET (POST ke Apps Script tidak di-cache)
   if (req.method !== "GET") return;
+
+  // ⚠ Skip request non-http(s): chrome-extension://, data:, blob:, file:, dll
+  // Cache API hanya support http/https scheme.
+  // Request dari Chrome extension (Grammarly, Adblock, dll) akan dilewatkan tanpa cache.
+  try {
+    const url = new URL(req.url);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return; // skip — biarkan browser handle sendiri
+    }
+  } catch (e) {
+    return; // URL invalid, skip
+  }
 
   const url = new URL(req.url);
 
